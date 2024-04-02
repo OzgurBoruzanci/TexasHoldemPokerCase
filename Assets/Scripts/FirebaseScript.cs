@@ -6,32 +6,55 @@ using Firebase.Database;
 using System;
 using System.Collections;
 using Firebase.Extensions;
+using TMPro;
+using Google.MiniJSON;
+using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEngine.SocialPlatforms.Impl;
 
 //database e yüklencek class
 [Serializable]
 public class Data
 {   //databese yüklenecek deðiþkenler
     [HideInInspector]
-    public int Data1, Data2, Data3, Data4;
+    public int Point, Money;
+    [HideInInspector]
+    public string Nickname;
+
+}
+
+public class Leaderboard
+{
+    //Leaderboarddan çekilecek class
+    public List<string> NameList = new List<string>();
+    public List<int> PointList = new List<int>();
 
 }
 
 public class FirebaseScript : MonoBehaviour
 {
-    public string Email;
-    public string Password;
+
+
+    public TMP_InputField EmailText;
+    public TMP_InputField PasswordText;
+    public TMP_InputField NicknameText;
+
+
 
     FirebaseAuth auth;
     FirebaseUser user;
     DatabaseReference db;
 
-    public int Var5;
-    public int Var6;
-    public int Var7;
-    public int Var8;
+    [SerializeField]
+    private int point, money;
+    [SerializeField]
+    private string nickname;
+
     public Data Dataram;
+    public Leaderboard Leaderram;
 
-
+    public TMPro.TextMeshProUGUI[] NameList;
+    public TMPro.TextMeshProUGUI[] PointList;
 
 
 
@@ -48,7 +71,8 @@ public class FirebaseScript : MonoBehaviour
     {
 
 
-        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task => {
+        Firebase.FirebaseApp.CheckAndFixDependenciesAsync().ContinueWithOnMainThread(task =>
+        {
 
 
             var app = Firebase.FirebaseApp.DefaultInstance;
@@ -62,7 +86,7 @@ public class FirebaseScript : MonoBehaviour
     {
 
         //email kaydedilir
-        auth.CreateUserWithEmailAndPasswordAsync(Email, Password).ContinueWith(task =>
+        auth.CreateUserWithEmailAndPasswordAsync(EmailText.text, PasswordText.text).ContinueWith(task =>
         {
             if (task.IsCanceled)
             {
@@ -91,14 +115,17 @@ public class FirebaseScript : MonoBehaviour
     public void SaveData()
     {
 
-        Dataram.Data1 = Var5;
-        Dataram.Data2 = Var6;
-        Dataram.Data3 = Var7;
-        Dataram.Data4 = Var8;
+        Dataram.Point = point;
+        Dataram.Money = money;
+        Dataram.Nickname = NicknameText.text;
+
 
         //veriler jsona çeviirilir yüklenir
         string json = JsonUtility.ToJson(Dataram);
         db.Child(user.UserId).SetRawJsonValueAsync(json);
+
+
+
     }
 
 
@@ -108,7 +135,7 @@ public class FirebaseScript : MonoBehaviour
     {
 
 
-        auth.SignInWithEmailAndPasswordAsync(Email, Password).ContinueWith(task =>
+        auth.SignInWithEmailAndPasswordAsync(EmailText.text, PasswordText.text).ContinueWith(task =>
         {
             if (task.IsCanceled)
             {
@@ -136,26 +163,100 @@ public class FirebaseScript : MonoBehaviour
             //class deðiþkenlere aktarýlýr
             if (Dataram != null)
             {
-                Var5 = Dataram.Data1;
-                Var6 = Dataram.Data2;
-                Var7 = Dataram.Data3;
-                Var8 = Dataram.Data4;
+                point = Dataram.Point;
+                money = Dataram.Money;
+                nickname = Dataram.Nickname;
             }
             else
             {//yeni kullanýcý giriþi olduðunda veri olmadýðý için 0 atanýr
-                Var5 = 0;
-                Var6 = 0;
-                Var7 = 0;
-                Var8 = 0;
+                point = 0;
+                money = 0;
+                nickname = null;
+
             }
-
-
-
-
         });
     }
 
 
 
 
+
+    //Firebaseden veri çekmek biraz uzun sürüyor o yüzden Ienumerator çaðýrýyoruz
+    public void Leaderboard()
+    {
+        StartCoroutine(Writeboard());
+
+    }
+
+    public void Refreshboard()
+    {
+        StartCoroutine(Refresh());
+
+    }
+
+
+
+
+    //kullanýcýyý leaderboarda kaydetme
+    IEnumerator Writeboard()
+    {
+        //class al
+        var data1 = db.Child("LeaderBoard").GetValueAsync();
+        yield return new WaitUntil(predicate: () => data1.IsCompleted);
+        string tson = data1.Result.GetRawJsonValue();
+        Leaderram = JsonUtility.FromJson<Leaderboard>(tson);
+
+        int number = 0;
+
+        point = Convert.ToInt32(PasswordText.text);
+        nickname = NicknameText.text;
+
+        //mevcut puaný best 10 kiþiyle kýyasla
+        while (number < 11)
+        {
+            if (Leaderram.PointList[number] < point)
+            {
+                //listeye ekle 
+                Leaderram.PointList.Insert(number, point);
+                Leaderram.NameList.Insert(number, nickname);
+
+
+                //geriye düþeni sil
+                Leaderram.PointList.RemoveAt(11);
+                Leaderram.NameList.RemoveAt(11);
+                
+                //keydet
+                string json = JsonUtility.ToJson(Leaderram);
+                db.Child("LeaderBoard").SetRawJsonValueAsync(json);
+
+                break;
+            }
+            number++;
+
+        }
+    }
+
+
+    //best 10 kiþi ve puaný listeye yazdýr
+    IEnumerator Refresh()
+    {
+        //classý al
+        var data1 = db.Child("LeaderBoard").GetValueAsync();
+        yield return new WaitUntil(predicate: () => data1.IsCompleted);
+        string tson = data1.Result.GetRawJsonValue();
+        Leaderram = JsonUtility.FromJson<Leaderboard>(tson);
+
+        int number = 0;
+
+        //teker teker yazdýr
+        while (number < 10)
+        {
+            
+            NameList[number].text = Leaderram.NameList[number];
+            PointList[number].text = Leaderram.PointList[number].ToString();
+            number++;
+
+        }
+
+    }
 }
