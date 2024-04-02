@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "716583793729",
+    "firebase_url": "https://poker-94130-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "poker-94130",
+    "storage_bucket": "poker-94130.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716583793729:android:f00b81fc1fc00b955782c0",
+        "android_client_info": {
+          "package_name": "com.velogames.poker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBm0u1Arak7-tPzYeHXFRogEAi6F9Cqkk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
