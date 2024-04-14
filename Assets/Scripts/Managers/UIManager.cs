@@ -4,16 +4,12 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    public void DealCardsToPlayersPressed()
-    {
-        GameManager.Instance.DealCardsToPlayers();
-    }
-    public void DealCardsToBoardPressed()
+    public void StartGame()
     {
         GameManager.Instance.DealCardsToBoard();
     }
-    public void UpdateHandComparisonUI(int playerNumber)
+    public void PlayerInputPressed(int enumNum)
     {
-        GameManager.Instance.GetHandStrength(playerNumber);
+        GameManager.Instance.PlayerInput(enumNum);
     }
 }

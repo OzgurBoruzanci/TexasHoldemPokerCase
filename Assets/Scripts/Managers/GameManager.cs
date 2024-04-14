@@ -4,6 +4,12 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
 
+public enum GamePhase
+{
+    Bet,
+    Fold,
+    Call
+}
 public class GameManager : MonoBehaviour
 {
     private static GameManager _instance;
@@ -17,11 +23,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject placeholderBoard;
     [SerializeField] private GameObject placeholderHand;
     [SerializeField] private GameObject[] placeholderPlayerHands;
-    [SerializeField] private GameObject[] compare_Buttons;
     #endregion
     [SerializeField] private List<Card> board_cards;
     [SerializeField] private List<Card>[] player_cards = new List<Card>[4];
     private GameObject cardTempObj;
+    private GamePhase gamePhase;
+    private bool gameEnded;
+    [SerializeField] private int money = 100;
+    private int bet;
     private int num_hand = 1;
     private int num_cards_board = 0;
     private void Awake()
@@ -56,6 +65,7 @@ public class GameManager : MonoBehaviour
                 deck.Remove(deck[i]);
                 num_cards_board++;
             }
+            DealCardsToPlayers();
         }
         else if (num_cards_board < 5)
         {
@@ -65,6 +75,7 @@ public class GameManager : MonoBehaviour
             if (num_cards_board== 5)
             {
                 CheckWinner();
+                bet = 0;
             }
         }
         else
@@ -72,7 +83,7 @@ public class GameManager : MonoBehaviour
             ResetGame();
         }
     }
-    public void DealCardsToPlayers()
+    private void DealCardsToPlayers()
     {
         if (player_cards[0].Count == 0)
         {
@@ -86,12 +97,10 @@ public class GameManager : MonoBehaviour
                     player_cards[i].Add(cardObj.GetComponent<Card>());
                     deck.Remove(deck[j]);
                 }
-                compare_Buttons[i].SetActive(true);
             }
         }
     }
-    //Checks what kind of match you have onyour hand and writes it to the UI
-    public void GetHandStrength(int player_num)
+    private void GetHandStrength(int player_num)
     {
         List<Card> handToCompare = new List<Card>();
         for (int i = 0; i < board_cards.Count; i++)
@@ -104,7 +113,6 @@ public class GameManager : MonoBehaviour
         }
         PokerHand pokerHand = new PokerHand();
         pokerHand.SetPokerHand(handToCompare.ToArray());
-        compare_Buttons[player_num].transform.GetChild(1).GetComponent<TMPro.TextMeshProUGUI>().text = pokerHand.PrintResult();
     }
     private GameObject InstantiateCard(Card_SO sO, Vector3 pos, Transform parent, int num_card)
     {
@@ -117,6 +125,7 @@ public class GameManager : MonoBehaviour
     }
     private void ResetGame()
     {
+        gameEnded= false;
         num_hand = 1;
         num_cards_board = 0;
         foreach (var card in board_cards)
@@ -133,9 +142,14 @@ public class GameManager : MonoBehaviour
             player_cards[i].Clear();
         }
         deck = new List<Card_SO>(listofCards);
+        Debug.Log("****  ****");
+        Debug.Log("****  ****");
+        Debug.Log("****  New Round  ****");
+        DealCardsToBoard();
     }
     private void CheckWinner()
     {
+        gameEnded = true;
         List<int> winningPlayers = new List<int>();
         int highestStrength = -1;
 
@@ -147,21 +161,17 @@ public class GameManager : MonoBehaviour
 
             PokerHand pokerHand = new PokerHand();
             pokerHand.SetPokerHand(handToCompare.ToArray());
-
+            
             if (pokerHand.Strength > highestStrength)
             {
                 winningPlayers.Clear();
                 winningPlayers.Add(i);
                 highestStrength = pokerHand.Strength;
             }
-            else if (pokerHand.Strength == highestStrength)
-            {
-                winningPlayers.Add(i);
-            }
         }
         if (winningPlayers.Count > 0)
         {
-            Debug.Log("** Winning players:");
+            Debug.Log("*****    Winning players    *****");
             foreach (int playerIndex in winningPlayers)
             {
                 List<Card> winningHandCards = new List<Card>();
@@ -169,9 +179,69 @@ public class GameManager : MonoBehaviour
                 winningHandCards.AddRange(player_cards[playerIndex]);
                 PokerHand winningHand = new PokerHand();
                 winningHand.SetPokerHand(winningHandCards.ToArray());
-
+                if (playerIndex == 0)
+                {
+                    money += bet * 4 * 2;
+                }
                 Debug.Log("Player " + (playerIndex + 1) + ", Hand: " + winningHand.PrintResult());
             }
+        }
+    }
+    public void PlayerInput(int value)
+    {         switch (value)
+        {
+            case 0:
+                gamePhase = GamePhase.Bet;
+                bet += 10;
+                money -= bet;
+                BotInput();
+                DealCardsToBoard();
+                break;
+            case 1:
+                gamePhase = GamePhase.Call;
+                money -= bet;
+                BotInput();
+                DealCardsToBoard();
+                break;
+            case 2:
+                gamePhase = GamePhase.Fold;
+                BotInput();
+                DealCardsToBoard();
+                break;
+        }
+    }
+    private bool CheckTheMoney()
+    {
+        return money > 0;
+    }
+    private void BotInput()
+    {
+        if (gamePhase != GamePhase.Fold)
+        {
+            for (int i = 1; i < placeholderPlayerHands.Length; i++)
+            {
+                float randomValue = Random.Range(0f, 1.5f);
+                if (randomValue < 0.25f)
+                {
+                    placeholderPlayerHands[i].SetActive(false);
+                    Debug.Log("Player " + (i + 1) + " passed.");
+                }
+                else if(randomValue>0.25f && randomValue<0.75f)
+                {
+                    placeholderPlayerHands[i].SetActive(true);
+                    bet += 10;
+                    Debug.Log("Player " + (i + 1) + " bet increased.");
+                }
+            }
+        }
+        else if (gamePhase == GamePhase.Fold && !gameEnded)
+        {
+            DealCardsToBoard();
+        }
+        else if (gameEnded)
+        {
+            ResetGame();
+            Debug.Log("****  Game Ended  ****");
         }
     }
 }
