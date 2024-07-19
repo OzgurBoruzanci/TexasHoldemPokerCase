@@ -159,20 +159,28 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < placeholderPlayerHands.Length; i++)
         {
+            // Fold yapmýþ oyuncularý atla
+            if (!placeholderPlayerHands[i].activeSelf) continue;
+
             List<Card> handToCompare = new List<Card>();
             handToCompare.AddRange(board_cards);
             handToCompare.AddRange(player_cards[i]);
 
             PokerHand pokerHand = new PokerHand();
             pokerHand.SetPokerHand(handToCompare.ToArray());
-            
+
             if (pokerHand.Strength > highestStrength)
             {
                 winningPlayers.Clear();
                 winningPlayers.Add(i);
                 highestStrength = pokerHand.Strength;
             }
+            else if (pokerHand.Strength == highestStrength)
+            {
+                winningPlayers.Add(i);
+            }
         }
+
         if (winningPlayers.Count > 0)
         {
             Debug.LogWarning("*****    Winning players    *****");
