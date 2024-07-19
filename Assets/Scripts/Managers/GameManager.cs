@@ -141,6 +141,10 @@ public class GameManager : MonoBehaviour
             }
             player_cards[i].Clear();
         }
+        for (int i = 0; i < placeholderPlayerHands.Length; i++)
+        {
+            placeholderPlayerHands[i].SetActive(true);
+        }
         deck = new List<Card_SO>(listofCards);
         Debug.Log("****  ****");
         Debug.Log("****  ****");
@@ -171,7 +175,7 @@ public class GameManager : MonoBehaviour
         }
         if (winningPlayers.Count > 0)
         {
-            Debug.Log("*****    Winning players    *****");
+            Debug.LogWarning("*****    Winning players    *****");
             foreach (int playerIndex in winningPlayers)
             {
                 List<Card> winningHandCards = new List<Card>();
@@ -188,7 +192,8 @@ public class GameManager : MonoBehaviour
         }
     }
     public void PlayerInput(int value)
-    {         switch (value)
+    {
+        switch (value)
         {
             case 0:
                 gamePhase = GamePhase.Bet;
@@ -198,17 +203,29 @@ public class GameManager : MonoBehaviour
                 DealCardsToBoard();
                 break;
             case 1:
+                gamePhase = GamePhase.Fold;
+                FoldPlayer(0);
+                BotInput();
+                DealCardsToBoard();
+                
+                break;
+            case 2:
                 gamePhase = GamePhase.Call;
                 money -= bet;
                 BotInput();
                 DealCardsToBoard();
                 break;
-            case 2:
-                gamePhase = GamePhase.Fold;
-                BotInput();
-                DealCardsToBoard();
-                break;
         }
+    }
+    private void FoldPlayer(int playerIndex)
+    {
+        foreach (var card in player_cards[playerIndex])
+        {
+            Destroy(card.gameObject);
+        }
+        player_cards[playerIndex].Clear();
+        placeholderPlayerHands[playerIndex].SetActive(false);
+        Debug.Log("Player " + (playerIndex + 1) + " folded.");
     }
     private bool CheckTheMoney()
     {
@@ -223,10 +240,9 @@ public class GameManager : MonoBehaviour
                 float randomValue = Random.Range(0f, 1.5f);
                 if (randomValue < 0.25f)
                 {
-                    placeholderPlayerHands[i].SetActive(false);
-                    Debug.Log("Player " + (i + 1) + " passed.");
+                    FoldPlayer(i);
                 }
-                else if(randomValue>0.25f && randomValue<0.75f)
+                else if (randomValue > 0.25f && randomValue < 0.75f)
                 {
                     placeholderPlayerHands[i].SetActive(true);
                     bet += 10;
